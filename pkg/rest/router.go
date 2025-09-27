@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/jjnt224/chat8/pkg/config"
+	"github.com/jjnt224/chat8/pkg/rest/api"
 	"github.com/jjnt224/chat8/pkg/rest/web"
 	"github.com/jjnt224/chat8/pkg/view"
 )
@@ -32,9 +33,17 @@ func NewRouter(cfg config.Config, db *sqlx.DB) http.Handler {
 	// a := NewAuthHandler(db, jwtSvc)
 	// m := NewMessageHandler(db)
 
+	authAPIHandler := api.NewAuthAPIHandler(db)
 	authWebHandler := web.NewAuthWebHandler(renderer)
 
+	// Web routes
 	r.Get("/login", authWebHandler.ShowLoginPage)
+	r.Get("/register", authWebHandler.ShowRegisterPage)
+
+	// API routes
+	r.Route("/api", func(api chi.Router) {
+		api.Post("/register", authAPIHandler.RegisterAPI)
+	})
 
 	// r.Post("/register", a.Register)
 	// r.Post("/api/login", a.Login)

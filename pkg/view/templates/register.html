@@ -1,0 +1,28 @@
+{{define "page-registerr"}}
+{{template "base" .}}
+{{end}}
+
+{{define "title"}}Register{{end}}
+
+{{define "content"}}
+<h2>Register</h2>
+
+<form action="/api/register" method="POST">
+  <div>
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" required>
+  </div>
+
+  <div>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required>
+  </div>
+
+  <div>
+    <label for="city_id">City ID</label>
+    <input id="city_id" name="city_id" type="number" required>
+  </div>
+
+  <button type="submit">Register</button>
+</form>
+{{end}}

@@ -17,3 +17,7 @@ func NewAuthWebHandler(v *view.Renderer) *AuthWebHandler {
 func (h *AuthWebHandler) ShowLoginPage(w http.ResponseWriter, r *http.Request) {
 	h.view.Render(w, "page-login", nil)
 }
+
+func (h *AuthWebHandler) ShowRegisterPage(w http.ResponseWriter, r *http.Request) {
+	h.view.Render(w, "page-register", nil)
+}
