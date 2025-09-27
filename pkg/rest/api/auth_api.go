@@ -1,20 +1,86 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/jjnt224/chat8/pkg/auth"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthAPIHandler struct {
-	DB *sqlx.DB
+	DB           *sqlx.DB
+	SessionStore *auth.SessionStore
 }
 
-func NewAuthAPIHandler(db *sqlx.DB) *AuthAPIHandler {
-	return &AuthAPIHandler{DB: db}
+// func NewAuthAPIHandler(db *sqlx.DB) *AuthAPIHandler {
+// 	return &AuthAPIHandler{DB: db}
+// }
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (h *AuthAPIHandler) LoginAPI(w http.ResponseWriter, r *http.Request) {
+	// Pastikan hanya method POST
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse form values dari request
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	var id, cityID int64
+	var hash string
+	err := h.DB.QueryRow(`SELECT id, password_hash, city_id FROM users WHERE username = ?`, username).Scan(&id, &hash, &cityID)
+	if err != nil || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
+		http.Error(w, "invalid creds", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate random session token
+	token, err := auth.GenerateSecureToken(32)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Simpan session ke Redis dengan TTL = 5 menit
+	session := auth.SessionData{
+		UserID:   1,
+		Username: username,
+	}
+	ctx := context.Background()
+	if err := h.SessionStore.Save(ctx, token, session, 5*time.Minute); err != nil {
+		http.Error(w, "Failed to save session", http.StatusInternalServerError)
+		return
+	}
+
+	// Set cookie HttpOnly
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   true, // wajib diaktifkan jika HTTPS
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	// Redirect ke halaman utama setelah login sukses
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // type registerRequest struct {

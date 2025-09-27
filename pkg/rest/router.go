@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/jjnt224/chat8/pkg/auth"
 	"github.com/jjnt224/chat8/pkg/config"
 	"github.com/jjnt224/chat8/pkg/rest/api"
 	"github.com/jjnt224/chat8/pkg/rest/web"
@@ -21,19 +22,15 @@ func NewRouter(cfg config.Config, db *sqlx.DB) http.Handler {
 
 	r.Use(cors.Handler(cors.Options{AllowedOrigins: []string{"*"}, AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"*"}, MaxAge: 300}))
 
-	// jwtSvc := auth.JWTService{
-	// 	AccessSecret:  []byte(cfg.JWTAccessSecret),
-	// 	RefreshSecret: []byte(cfg.JWTRefreshSecret),
-	// 	AccessTTL:     time.Duration(cfg.JWTAccessTTLMin) * time.Minute,
-	// 	RefreshTTL:    time.Duration(cfg.JWTRefreshTTLDays) * 24 * time.Hour,
-	// }
+	store := auth.NewSessionStore("localhost:6379")
 
 	// REST endpoints
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	// a := NewAuthHandler(db, jwtSvc)
 	// m := NewMessageHandler(db)
 
-	authAPIHandler := api.NewAuthAPIHandler(db)
+	// api.NewAuthAPIHandler(db)
+	authAPIHandler := &api.AuthAPIHandler{DB: db, SessionStore: store}
 	authWebHandler := web.NewAuthWebHandler(renderer)
 
 	// Web routes
@@ -43,6 +40,17 @@ func NewRouter(cfg config.Config, db *sqlx.DB) http.Handler {
 	// API routes
 	r.Route("/api", func(api chi.Router) {
 		api.Post("/register", authAPIHandler.RegisterAPI)
+		api.Post("/login", authAPIHandler.LoginAPI)
+	})
+
+	// Protected routes
+	r.Group(func(pr chi.Router) {
+		pr.Use(auth.AuthMiddleware(store))
+		pr.Get("/api/me", func(w http.ResponseWriter, r *http.Request) {
+			user := auth.GetUserFromContext(r.Context())
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"user":"` + user.Username + `"}`))
+		})
 	})
 
 	// r.Post("/register", a.Register)
