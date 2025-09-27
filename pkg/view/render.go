@@ -7,21 +7,30 @@ import (
 )
 
 type Renderer struct {
-	templates *template.Template
+	templates map[string]*template.Template
 }
 
 func NewRenderer(templateDir string) *Renderer {
-	// Parse semua file HTML di folder templates
-	templates, err := template.ParseGlob(filepath.Join(templateDir, "*.html"))
-	if err != nil {
-		panic("failed to parse templates: " + err.Error())
+	templates := make(map[string]*template.Template)
+
+	for _, value := range []string{"login", "register"} {
+		templates["page-"+value] = template.Must(template.ParseFiles(
+			filepath.Join(templateDir, "base.html"),
+			filepath.Join(templateDir, value+".html"),
+		))
 	}
+
 	return &Renderer{templates: templates}
 }
 
 func (r *Renderer) Render(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := r.templates.ExecuteTemplate(w, name, data)
+	tmpl, ok := r.templates[name]
+	if !ok {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+	err := tmpl.ExecuteTemplate(w, name, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
