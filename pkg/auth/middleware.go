@@ -13,15 +13,11 @@ const userKey contextKey = "user"
 func AuthMiddleware(store *SessionStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie("session_token")
+			data, err := GetSessionData(r, store)
 			if err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
+				// http.Error(w, "unauthorized", http.StatusUnauthorized)
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
 
-			data, err := store.Get(context.Background(), cookie.Value)
-			if err != nil || data == nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 
@@ -29,6 +25,20 @@ func AuthMiddleware(store *SessionStore) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func GetSessionData(r *http.Request, store *SessionStore) (*SessionData, error) {
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := store.Get(context.Background(), cookie.Value)
+	if err != nil || data == nil {
+		return nil, err
+	}
+
+	return data, err
 }
 
 func GetUserFromContext(ctx context.Context) *SessionData {

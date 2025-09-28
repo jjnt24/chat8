@@ -142,3 +142,39 @@ func (h *AuthAPIHandler) RegisterAPI(w http.ResponseWriter, r *http.Request) {
 		CityID:   cityID,
 	})
 }
+
+// LogoutAPI menghapus session dari Redis dan cookie
+func (h *AuthAPIHandler) LogoutAPI(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Ambil session token dari cookie
+	cookie, err := r.Cookie("session_token")
+	if err == nil {
+		// Hapus session di Redis
+		ctx := context.Background()
+		_ = h.SessionStore.Delete(ctx, cookie.Value)
+
+		// Clear cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
+
+	// Redirect ke halaman login
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (h *AuthAPIHandler) MeAPI(w http.ResponseWriter, r *http.Request) {
+	user := auth.GetUserFromContext(r.Context())
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"user":"` + user.Username + `"}`))
+}

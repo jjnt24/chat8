@@ -16,13 +16,11 @@ import (
 	"github.com/jjnt224/chat8/pkg/view"
 )
 
-func NewRouter(cfg config.Config, db *sqlx.DB) http.Handler {
+func NewRouter(cfg config.Config, db *sqlx.DB, store *auth.SessionStore) http.Handler {
 	r := chi.NewRouter()
 	renderer := view.NewRenderer("pkg/view/templates")
 
 	r.Use(cors.Handler(cors.Options{AllowedOrigins: []string{"*"}, AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"*"}, MaxAge: 300}))
-
-	store := auth.NewSessionStore("localhost:6379")
 
 	// REST endpoints
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
@@ -30,26 +28,28 @@ func NewRouter(cfg config.Config, db *sqlx.DB) http.Handler {
 	// m := NewMessageHandler(db)
 
 	// api.NewAuthAPIHandler(db)
-	authAPIHandler := &api.AuthAPIHandler{DB: db, SessionStore: store}
-	authWebHandler := web.NewAuthWebHandler(renderer)
+	authAPIHandler := &api.AuthAPIHandler{SessionStore: store, DB: db}
+	authWebHandler := &web.AuthWebHandler{SessionStore: store, View: renderer}
 
 	// Web routes
 	r.Get("/login", authWebHandler.ShowLoginPage)
+
 	r.Get("/register", authWebHandler.ShowRegisterPage)
+	r.Group(func(pr chi.Router) { // protected
+		pr.Use(auth.AuthMiddleware(store))
+
+		pr.Get("/", authWebHandler.ShowDashboardPage)
+	})
 
 	// API routes
 	r.Route("/api", func(api chi.Router) {
 		api.Post("/register", authAPIHandler.RegisterAPI)
 		api.Post("/login", authAPIHandler.LoginAPI)
-	})
+		api.Post("/logout", authAPIHandler.LogoutAPI)
 
-	// Protected routes
-	r.Group(func(pr chi.Router) {
-		pr.Use(auth.AuthMiddleware(store))
-		pr.Get("/api/me", func(w http.ResponseWriter, r *http.Request) {
-			user := auth.GetUserFromContext(r.Context())
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"user":"` + user.Username + `"}`))
+		api.Group(func(papi chi.Router) { // protected
+			papi.Use(auth.AuthMiddleware(store))
+			papi.Get("/me", authAPIHandler.MeAPI)
 		})
 	})
 

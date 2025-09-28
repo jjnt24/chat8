@@ -13,7 +13,7 @@ type Renderer struct {
 func NewRenderer(templateDir string) *Renderer {
 	templates := make(map[string]*template.Template)
 
-	for _, value := range []string{"login", "register"} {
+	for _, value := range []string{"login", "register", "dashboard"} {
 		templates["page-"+value] = template.Must(template.ParseFiles(
 			filepath.Join(templateDir, "base.html"),
 			filepath.Join(templateDir, value+".html"),

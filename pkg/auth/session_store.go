@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/jjnt224/chat8/pkg/config"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -17,9 +18,9 @@ type SessionStore struct {
 	Client *redis.Client
 }
 
-func NewSessionStore(addr string) *SessionStore {
+func NewSessionStore(cfg config.Config) *SessionStore {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr: cfg.RedisAddr,
 		DB:   0,
 	})
 	return &SessionStore{Client: rdb}

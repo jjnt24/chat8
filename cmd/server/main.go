@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jjnt224/chat8/pkg/auth"
 	"github.com/jjnt224/chat8/pkg/config"
 	"github.com/jjnt224/chat8/pkg/db"
 	"github.com/jjnt224/chat8/pkg/rest"
@@ -13,8 +14,9 @@ import (
 func main() {
 	cfg := config.Load()
 	database := db.MustInit(cfg)
+	sessionStore := auth.NewSessionStore(cfg)
 
-	r := rest.NewRouter(cfg, database)
+	r := rest.NewRouter(cfg, database, sessionStore)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

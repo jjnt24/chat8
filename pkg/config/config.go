@@ -13,6 +13,8 @@ type Config struct {
 	DBDriver string
 	DBDSN    string
 
+	RedisAddr string
+
 	JWTAccessSecret   string
 	JWTRefreshSecret  string
 	JWTAccessTTLMin   int
@@ -44,6 +46,8 @@ func Load() Config {
 
 		DBDriver: getenv("DB_DRIVER", "sqlite3"),
 		DBDSN:    getenv("DB_DSN", "./chat.db"),
+
+		RedisAddr: getenv("REDIS_ADDR", "localhost:6379"),
 
 		JWTAccessSecret:   getenv("JWT_ACCESS_SECRET", "dev-access"),
 		JWTRefreshSecret:  getenv("JWT_REFRESH_SECRET", "dev-refresh"),

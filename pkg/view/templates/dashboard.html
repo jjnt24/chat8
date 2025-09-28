@@ -1,0 +1,14 @@
+{{define "page-dashboard"}}
+{{template "base" .}}
+{{end}}
+
+{{define "title"}}Dashboard{{end}}
+
+{{define "content"}}
+<h2>Dashboard</h2>
+
+<form action="/api/logout" method="POST">
+  <button type="submit">Logout</button>
+</form>
+
+{{end}}
