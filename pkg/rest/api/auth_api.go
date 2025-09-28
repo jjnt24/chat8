@@ -59,7 +59,7 @@ func (h *AuthAPIHandler) LoginAPI(w http.ResponseWriter, r *http.Request) {
 
 	// Simpan session ke Redis dengan TTL = 5 menit
 	session := auth.SessionData{
-		UserID:   1,
+		UserID:   id,
 		Username: username,
 	}
 	ctx := context.Background()

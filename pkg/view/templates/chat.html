@@ -1,0 +1,54 @@
+{{define "page-chat"}}
+    {{template "base" .}}
+{{end}}
+
+{{define "title"}}Chat with {{.PeerUsername}}{{end}}
+
+{{define "content"}}
+<div id="chat-container" style="border:1px solid #ccc; padding:10px; width:400px; height:400px; overflow-y:scroll;">
+    {{range .Messages}}
+        <div>
+            <b>{{if eq .SenderID $.CurrentUserID}}You{{else}}{{$.PeerUsername}}{{end}}:</b> {{.Content}}
+        </div>
+    {{end}}
+</div>
+
+<form id="chat-form" style="margin-top:10px;">
+    <input type="text" id="message-input" placeholder="Type your message..." style="width:300px;">
+    <button type="submit">Send</button>
+</form>
+
+<script>
+    const ws = new WebSocket("ws://" + window.location.host + "/api/ws");
+    const chatContainer = document.getElementById("chat-container");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message-input");
+    const peerId = "{{.PeerID}}";
+
+    // Receive messages
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "new_message") {
+            const div = document.createElement("div");
+            div.innerHTML = "<b>" + (msg.payload.sender_id === {{.CurrentUserID}} ? "You" : "{{.PeerUsername}}") + ":</b> " + msg.payload.content;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    };
+
+    // Send message
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        if (input.value.trim() === "") return;
+
+        ws.send(JSON.stringify({
+            type: "send_message",
+            payload: {
+                receiver_id: parseInt(peerId),
+                content: input.value
+            }
+        }));
+        input.value = "";
+    };
+</script>
+{{end}}

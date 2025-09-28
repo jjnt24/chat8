@@ -14,6 +14,7 @@ import (
 	"github.com/jjnt224/chat8/pkg/rest/api"
 	"github.com/jjnt224/chat8/pkg/rest/web"
 	"github.com/jjnt224/chat8/pkg/view"
+	"github.com/jjnt224/chat8/pkg/ws"
 )
 
 func NewRouter(cfg config.Config, db *sqlx.DB, store *auth.SessionStore) http.Handler {
@@ -31,6 +32,10 @@ func NewRouter(cfg config.Config, db *sqlx.DB, store *auth.SessionStore) http.Ha
 	authAPIHandler := &api.AuthAPIHandler{SessionStore: store, DB: db}
 	authWebHandler := &web.AuthWebHandler{SessionStore: store, View: renderer}
 
+	chatWeb := &web.ChatWebHandler{View: renderer, DB: db}
+	chatAPI := &api.ChatAPIHandler{DB: db}
+	chatWS := &ws.ChatWebSocket{DB: db}
+
 	// Web routes
 	r.Get("/login", authWebHandler.ShowLoginPage)
 
@@ -39,6 +44,7 @@ func NewRouter(cfg config.Config, db *sqlx.DB, store *auth.SessionStore) http.Ha
 		pr.Use(auth.AuthMiddleware(store))
 
 		pr.Get("/", authWebHandler.ShowDashboardPage)
+		pr.Get("/chat", chatWeb.ShowChatRoom)
 	})
 
 	// API routes
@@ -50,6 +56,9 @@ func NewRouter(cfg config.Config, db *sqlx.DB, store *auth.SessionStore) http.Ha
 		api.Group(func(papi chi.Router) { // protected
 			papi.Use(auth.AuthMiddleware(store))
 			papi.Get("/me", authAPIHandler.MeAPI)
+
+			papi.Get("/messages", chatAPI.GetMessages)
+			papi.Get("/ws", chatWS.ServeWS)
 		})
 	})
 

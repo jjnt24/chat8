@@ -51,11 +51,12 @@ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 sender_id INTEGER NOT NULL,
-receiver_id INTEGER,
+receiver_id INTEGER NOT NULL,
 room TEXT,
 content TEXT NOT NULL,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-FOREIGN KEY(sender_id) REFERENCES users(id)
+FOREIGN KEY(sender_id) REFERENCES users(id),
+FOREIGN KEY(receiver_id) REFERENCES users(id)
 )`)
 	// refresh tokens (server-tracked, optional)
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS refresh_tokens (
